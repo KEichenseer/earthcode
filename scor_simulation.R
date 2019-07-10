@@ -306,8 +306,8 @@ plotSCOR <- function(scor) {
   
   ###
   # Cells
-  plot(0,0,xlim = c(1,length(myscor1[,1,1,1])), ylim = c(0,max(c(myscor1[,4,,]))), xlab = "timebin index", ylab = "cells")
-  points(myscor1[,4,1,1], type = "o", col = "black", lwd = 3)
+  plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,4,,]))), xlab = "timebin index", ylab = "cells")
+  points(scor[,4,1,1], type = "o", col = "black", lwd = 3)
   
   
   # legend

@@ -122,10 +122,13 @@ plotworldtaxon <- function(world,taxonid, logarithmic = F) {
 
 
 sampleworld <- function(world,
-                        mtimebins = 20,
-                        ncells = rep(100,20),
-                        x_range = rep(list(c(1,xl)), 20),
-                        y_range = rep(list(c(1,yl)), 20)) {
+                        mtimebins = 10,      # repeat the sampling process in different "time bins"
+                        ncells = rep(100,10),   # number of cells sampled for each time bin. Needs to be
+                        # a vector with length mtimebins
+                        x_range = rep(list(c(1,dim(world[[1]])[1])), 10),  # optional: restrict the longitude sampled
+                        # needs to be a list of vectors of length mtimbins.
+                        # Each list element needs to specify the start and the end of the range.
+                        y_range = rep(list(c(1,dim(world[[1]])[1])), 10)) {
   
   # names of the time bins (just use numbers)
   alltimebins <- as.character(1:mtimebins)

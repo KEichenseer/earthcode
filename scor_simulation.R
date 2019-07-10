@@ -295,14 +295,14 @@ plotSCOR <- function(scor) {
   plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,1,,]))), xlab = "timebin index", ylab = "SCOR", main = "no subsampling")
   colors2 <- rainbow(ncol(scor[,,1,1]), alpha = 0.8)
   # abline(v = mean(as.numeric(alltimebins)), lty = 2)
-  for(i in 1:length(allgroups)) points(scor[,1,i,1], type = "o", col = colors2[i], lwd = 3)
+  for(i in 1:dim(scor)[3]) points(scor[,1,i,1], type = "o", col = colors2[i], lwd = 3)
   
   ###
   # Genera
   plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,5,,]))), xlab = "timebin index", ylab = "genera")
   colors2 <- rainbow(ncol(scor[,,1,1]), alpha = 0.8)
   # abline(v = mean(as.numeric(alltimebins)), lty = 2)
-  for(i in 1:length(allgroups)) points(scor[,5,i,1], type = "o", col = colors2[i], lwd = 3)
+  for(i in 1:dim(scor)[3]) points(scor[,5,i,1], type = "o", col = colors2[i], lwd = 3)
   
   ###
   # Cells

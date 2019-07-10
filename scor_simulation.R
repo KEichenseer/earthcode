@@ -34,7 +34,7 @@ createworld <- function(xl = 50,
   # array to save the world
   td <- array(0,dim = c(xl,yl,tn))
   
-  
+   
   # fill in the distribution into the world - run across the grid filling genera to cells, with occurrence limit (capacity)
   if(usediv == T){ for(xn in 1:xl) {
     for(yn in 1:yl){

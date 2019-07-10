@@ -203,7 +203,7 @@ plotsampleworld <- function(data, xl,yl, metric = "occurrences", timebin1 = 1) {
     mf <- sapply(unique(timesub$cell), function(x) {
       c(as.numeric(unique(timesub$longitude[which(timesub$cell == x)])),
         as.numeric(unique(timesub$latitude[which(timesub$cell == x)])),
-        length(unique(timesub$taxon[which(timesub$cell == x),])))
+        length(unique(timesub$taxon[which(timesub$cell == x)])))
       
     }
     )

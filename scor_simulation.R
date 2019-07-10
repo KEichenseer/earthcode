@@ -125,10 +125,16 @@ sampleworld <- function(world,
                         mtimebins = 10,      # repeat the sampling process in different "time bins"
                         ncells = rep(100,10),   # number of cells sampled for each time bin. Needs to be
                         # a vector with length mtimebins
-                        x_range = rep(list(c(1,dim(world[[1]])[1])), 10),  # optional: restrict the longitude sampled
+                        x_range = NULL,  # optional: restrict the longitude sampled
                         # needs to be a list of vectors of length mtimbins.
                         # Each list element needs to specify the start and the end of the range.
-                        y_range = rep(list(c(1,dim(world[[1]])[1])), 10)) {
+                        # For example: x_range = rep(list(c(25,35)[1])), 10) restricts the longitude
+                        # in all 10 time bins to between 25 and 35.
+                        y_range = NULL) {
+  
+  if(is.null(x_range)) x_range <- rep(list(c(1,dim(world[[1]])[1])), 10)
+  if(is.null(y_range)) y_range <- rep(list(c(1,dim(world[[1]])[2])), 10)
+  
   
   # names of the time bins (just use numbers)
   alltimebins <- as.character(1:mtimebins)

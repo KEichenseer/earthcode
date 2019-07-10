@@ -1,5 +1,6 @@
 library(gridExtra)
 library(lattice)
+library(dplyr)
 createworld <- function(xl = 50,
                         yl = 50,
                         tn = 200,
@@ -173,6 +174,9 @@ sampleworld <- function(world,
   # head(occmat)
   
   occmat <- (occmat %>% mutate_if(is.factor,function(x) as.character(x)))
+  occmat[c("group", "taxon", "timebin", "latitude", "longitude", "cell"),] <- 
+    (occmat[c("group", "taxon", "timebin", "latitude", "longitude", "cell"),] %>% 
+       mutate_if(is.character,function(x) as.numeric(x)))
   
   return(occmat)
 }

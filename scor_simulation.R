@@ -370,7 +370,7 @@ plotrepeatSCOR <- function(scor, endext = 0.2, metric = "se", nmet = 2) {
   ### SCOR
   
   sc1 <-  apply(scor,c(1,2,3,4),mean)
-  if(metric == "se") scsd <- apply(scor,c(1,2,3,4),function(x) sd(x) /sqrt(length(test3[1,1,1,1,])))
+  if(metric == "se") scsd <- apply(scor,c(1,2,3,4),function(x) sd(x) /sqrt(length(scor[1,1,1,1,])))
   if(metric == "sd") scsd <- apply(scor,c(1,2,3,4),function(x) sd(x))
   
   colors2 <- rainbow(length(sc1[1,1,,1]), alpha = 0.8)

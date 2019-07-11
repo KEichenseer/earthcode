@@ -328,18 +328,18 @@ repeatsampleSCOR <- function(
   world,
   repetitions = 10,
   # for the resampling
-  mtimebins = 20,
-  ncells = rep(100,20),
-  x_range = rep(list(c(1,xl)), 20),
-  y_range = rep(list(c(1,yl)), 20),
+  mtimebins = 10,
+  ncells = rep(100,10),
+  x_range = NULL,
+  y_range = NULL,
   # for SCOR
-  timebinnames, groupnames = "none", useallcells = T, celldownsample = F, subcells = NA,
+  groupnames = 1, useallcells = T, celldownsample = F, subcells = NA,
   taxondownsample = F, ntaxa = NA,
   samplingrep = 1, n_plus_one = T
   
 ) {
   
-  timebinnames <- mtimebins
+  timebinnames <- 1:mtimebins
   scor_out <- array(NA,dim = c(length(timebinnames), 5, length(groupnames), samplingrep, repetitions), 
                     dimnames = list(timebinnames,c("SCOR","SCORvar","SCORse","Ncells","Ngenera"),groupnames, 1:samplingrep,
                                     1:repetitions))  

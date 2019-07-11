@@ -71,9 +71,10 @@ createworld <- function(xl = 50,
     if((xn/10000) == 1) print(paste("Stopped counting at x   ",xn))
   }
   }
+  ## number of occupied grids for each genus
+  gridoccupancy <- sapply(1:tn, function(x) table(td[,,x] == 0)[1])
   
-  
-  return(list(td,mygroups,tam))
+  return(list(td,mygroups,tam, gridoccupancy))
 }
 
 
@@ -126,6 +127,7 @@ sampleworld <- function(world,
                         mtimebins = 10,      # repeat the sampling process in different "time bins"
                         ncells = rep(100,10),   # number of cells sampled for each time bin. Needs to be
                         # a vector with length mtimebins
+                        ntaxacell = NULL, # subsample down to ntaxacell taxa per cell
                         x_range = NULL,  # optional: restrict the longitude sampled
                         # needs to be a list of vectors of length mtimbins.
                         # Each list element needs to specify the start and the end of the range.
@@ -154,6 +156,14 @@ sampleworld <- function(world,
     for(n in 1:ncells[m]){
       celltax <- which(world[[1]][lon1[n],lat1[n],] != 0) # taxon name
       celltaxn <- world[[1]][lon1[n],lat1[n],which(world[[1]][lon1[n],lat1[n],] != 0)] # frequency of these taxa
+      
+      # taxa subsampling
+      if(!(is.null(ntaxacell))) {
+        subcelltaxindex <-  sample(1:length(celltax),size = ntaxacell, prob = celltaxn)
+        celltax <- celltax[subcelltaxindex]
+        celltaxn <- celltaxn[subcelltaxindex]
+      }
+      
       groupscell <- world[[2]][celltax]
       out <- cbind(
         unlist(c(mapply(function(x,y) rep(x,each = y),x = groupscell, y = celltaxn))), # group
@@ -221,8 +231,8 @@ plotsampleworld <- function(data, xl,yl, metric = "occurrences", timebin1 = 1) {
 ################
 ####
 #
-getSCOR <- function(dataframe, timebinnames, groupnames = "none", useallcells = T, celldownsample = F, subcells = NA,
-                    taxondownsample = F, ntaxa = NA,
+getSCOR <- function(dataframe, timebinnames, groupnames = "none", useallcells = T, downsample = NA, subcells = NA,
+                    subtaxa = NA, suboccs = NA,
                     samplingrep = 1, n_plus_one = T) { 
   #
   ### define the SCOR function to use in the larger function
@@ -240,13 +250,13 @@ getSCOR <- function(dataframe, timebinnames, groupnames = "none", useallcells = 
     lambda = -log(1-p) # lambda
     # output: a vector of SCOR, variance of SCOR, standard error of SCOR, number of cells and number of gener
     c(SCOR = sum(lambda), SCORvar = sum(p/((1 - p)*n)), SCORse = sqrt(sum(p/((1 - p)*n)))/sqrt(n),
-      Ncells = n, Ngenera = length(unique(df1$taxon)))
+      Ncells = n, Ngenera = length(unique(df1$taxon)), MeanGenCells = mean(gen_locs))
   }
   #
   #
   # save the output
-  out <- array(NA,dim = c(length(timebinnames), 5, length(groupnames), samplingrep), 
-               dimnames = list(timebinnames,c("SCOR","SCORvar","SCORse","Ncells","Ngenera"),groupnames, 1:samplingrep))
+  out <- array(NA,dim = c(length(timebinnames), 6, length(groupnames), samplingrep), 
+               dimnames = list(timebinnames,c("SCOR","SCORvar","SCORse","Ncells","Ngenera", "MeanGenCells"),groupnames, 1:samplingrep))
   #
   ### Lop for samplingrep sampling repetitions (for cell subsampling)  
   for(s in 1:samplingrep) {
@@ -258,10 +268,13 @@ getSCOR <- function(dataframe, timebinnames, groupnames = "none", useallcells = 
       tempsub <- subset(dataframe,timebin == timebinnames[t] & group %in% groupnames)
       #
       ### In case you want uniform cell number per time bin: downsample to minimum cell number (ncells):
-      if (celldownsample == T)  tempsub <- subset(tempsub,cell %in% base::sample(unique(tempsub$cell), size = subcells, replace = F))
+      if (downsample == "cells")  tempsub <- subset(tempsub,cell %in% base::sample(unique(tempsub$cell), size = subcells, replace = F))
       #
       ### In case you want uniform taxon number per time bin: downsample to minimum taxon number (ntaxon):
-      if (taxondownsample == T)  tempsub <- subset(tempsub,taxon %in% base::sample(unique(tempsub$taxon), size = ntaxa, replace = F))
+      if (downsample == "taxa")  tempsub <- subset(tempsub,taxon %in% base::sample(unique(tempsub$taxon), size = subtaxa, replace = F))
+      #
+      ### In case you want uniform taxon number per time bin: downsample to minimum taxon number (ntaxon):
+      if (downsample == "occurrences")  tempsub <- tempsub[sample(1:nrow(tempsub),size = suboccs, replace = F),]
       #
       #
       # Are there groups you want to use?
@@ -330,27 +343,34 @@ repeatsampleSCOR <- function(
   # for the resampling
   mtimebins = 10,
   ncells = rep(100,10),
+  ntaxacell = FALSE,
   x_range = NULL,
   y_range = NULL,
   # for SCOR
-  groupnames = 1, useallcells = T, celldownsample = F, subcells = NA,
-  taxondownsample = F, ntaxa = NA,
+  groupnames = 1, 
+  useallcells = T, 
+  downsample = FALSE, 
+  subcells = FALSE,
+  subtaxa = FALSE,
+  suboccs = FALSE,
   samplingrep = 1, n_plus_one = T
   
 ) {
   
   timebinnames <- 1:mtimebins
-  scor_out <- array(NA,dim = c(length(timebinnames), 5, length(groupnames), samplingrep, repetitions), 
-                    dimnames = list(timebinnames,c("SCOR","SCORvar","SCORse","Ncells","Ngenera"),groupnames, 1:samplingrep,
+  scor_out <- array(NA,dim = c(length(timebinnames), 6, length(groupnames), samplingrep, repetitions), 
+                    dimnames = list(timebinnames,c("SCOR","SCORvar","SCORse","Ncells","Ngenera", "MeanGenCells"),groupnames, 1:samplingrep,
                                     1:repetitions))  
   for (nrep in 1:repetitions){
-    sworld <- sampleworld(world = world, mtimebins = mtimebins, ncells = ncells, x_range = x_range, y_range = y_range)
+    sworld <- sampleworld(world = world, mtimebins = mtimebins, ncells = ncells, ntaxacell = ntaxacell, x_range = x_range, y_range = y_range)
     
     scor_out[,,,,nrep] <-  getSCOR(sworld, timebinnames = timebinnames, groupnames = groupnames, useallcells = useallcells, 
-                                   celldownsample = celldownsample, subcells = subcells, 
-                                   taxondownsample = taxondownsample, ntaxa = ntaxa, 
+                                   downsample = downsample, subcells = subcells, 
+                                   subtaxa = subtaxa, suboccs =  suboccs, 
                                    samplingrep = samplingrep, n_plus_one = n_plus_one)
     print(paste("this is repetition   ", nrep))
+    
+    
   }
   return(scor_out)
 }
@@ -363,7 +383,7 @@ error_polygon <- function(ep,en,tstart,tend,tmid,color) {
   
 }
 
-plotrepeatSCOR <- function(scor, endext = 0.2, metric = "se", nmet = 2) {
+plotrepeatSCOR <- function(scor, endext = 0.1, metric = "se", nmet = 2) {
   layout(matrix(c(1,2,3,4,5,6),nrow=3), width=c(4,1,4,1,4,1))
   par(mar=c(5,4,2.5,0)) #No margin on the right side
   
@@ -412,3 +432,134 @@ plotrepeatSCOR <- function(scor, endext = 0.2, metric = "se", nmet = 2) {
   plot(c(0,0),type="n", axes=F, xlab="", ylab="") # empty plot for the legend
   if(dim(scor)[3] > 1) legend("center", names(scor[1,1,,1,1]), col = colors2, lwd = 3, cex = 0.8) 
 }
+
+
+
+plotrepeatworldSCOR <- function(scor, endext = 0.1, metric = "se", nmet = 2, legend_key = NA, legend_label = NA) {
+  layout(matrix(c(1,2,3,4,5,6,7,8),nrow=4), width=c(4,1,4,1,4,1,4,1))
+  par(mar=c(5,4,2.5,0)) #No margin on the right side
+  
+  colors2 <- rainbow(length(scor), alpha = 0.8)
+  colors3 <- rainbow(length(scor), alpha = 0.2)
+  
+  ### SCOR
+  
+  plot(0,0,xlim = c(1,length(scor[[1]][,1,1,1,1])), ylim = c(0,max(unlist(lapply(1:length(scor),function(x) max(scor[[x]][,1,,,])))
+  )), xlab = "timebin index", 
+  ylab = "SCOR", main = "SCOR")
+  
+  for(di in 1:length(scor)){
+    sc1 <-  apply(scor[[di]],c(1,2,3,4),mean)
+    if(metric == "se") scsd <- apply(scor[[di]],c(1,2,3,4),function(x) sd(x) /sqrt(length(scor[[di]][1,1,1,1,])))
+    if(metric == "sd") scsd <- apply(scor[[di]],c(1,2,3,4),function(x) sd(x))
+    
+    for(i in 1:length(scor[[di]][1,1,,1,1])) error_polygon(ep = sc1[,1,i,1]+nmet*scsd[,1,i,1], en = sc1[,1,i,1]-nmet*scsd[,1,i,1],
+                                                           tstart = 1-endext,tend=endext+length(sc1[,1,i,1]),
+                                                           tmid=1:length(sc1[,1,i,1]),  color = colors3[di])
+    for(i in 1:length(scor[[di]][1,1,,1,1])) points(sc1[,1,i,1], type = "o", col = colors2[di], lwd = 3, lty = i)
+  }
+  
+  
+  ###
+  # Genera
+  plot(0,0,xlim = c(1,length(scor[[1]][,5,1,1,1])), ylim = c(0,max(unlist(lapply(1:length(scor),function(x) max(scor[[x]][,5,,,])))
+  )), xlab = "timebin index", 
+  ylab = "genera", main = "genera")
+  
+  for(di in 1:length(scor)){
+    sc1 <-  apply(scor[[di]],c(1,2,3,4),mean)
+    if(metric == "se") scsd <- apply(scor[[di]],c(1,2,3,4),function(x) sd(x) /sqrt(length(scor[[di]][1,1,1,1,])))
+    if(metric == "sd") scsd <- apply(scor[[di]],c(1,2,3,4),function(x) sd(x))
+    
+    for(i in 1:length(scor[[di]][1,5,,1,1])) error_polygon(ep = sc1[,5,i,1]+nmet*scsd[,5,i,1], en = sc1[,5,i,1]-nmet*scsd[,5,i,1],
+                                                           tstart = 1-endext,tend=endext+length(sc1[,5,i,1]),
+                                                           tmid=1:length(sc1[,5,i,1]),  color = colors3[di])
+    for(i in 1:length(scor[[di]][1,5,,1,1])) points(sc1[,5,i,1], type = "o", col = colors2[di], lwd = 3, lty = i)
+  }
+  
+  ###
+  # Cells
+  plot(0,0,xlim = c(1,length(scor[[1]][,4,1,1,1])), ylim = c(0,max(unlist(lapply(1:length(scor),function(x) max(scor[[x]][,4,,,])))
+  )), xlab = "timebin index", 
+  ylab = "grid cells", main = "grid cells")
+  
+  for(di in 1:length(scor)){
+    sc1 <-  apply(scor[[di]],c(1,2,3,4),mean)
+    if(metric == "se") scsd <- apply(scor[[di]],c(1,2,3,4),function(x) sd(x) /sqrt(length(scor[[di]][1,1,1,1,])))
+    if(metric == "sd") scsd <- apply(scor[[di]],c(1,2,3,4),function(x) sd(x))
+    
+    for(i in 1:length(scor[[di]][1,4,,1,1])) error_polygon(ep = sc1[,4,i,1]+nmet*scsd[,4,i,1], en = sc1[,4,i,1]-nmet*scsd[,4,i,1],
+                                                           tstart = 1-endext,tend=endext+length(sc1[,4,i,1]),
+                                                           tmid=1:length(sc1[,4,i,1]),  color = colors3[di])
+    for(i in 1:length(scor[[di]][1,4,,1,1])) points(sc1[,4,i,1], type = "o", col = colors2[di], lwd = 3, lty = i)
+  }
+  
+  ###
+  # Cells per genus
+  plot(0,0,xlim = c(1,length(scor[[1]][,6,1,1,1])), ylim = c(0,max(unlist(lapply(1:length(scor),
+                                                                      function(x) max(scor[[x]][,6,,,]/scor[[x]][,4,1,1,1])))
+  )), xlab = "timebin index", 
+  ylab = "average P of cells occupied", main = "average P of cells occupied, per genus")
+  
+  for(di in 1:length(scor)){
+    sc1 <-  apply(scor[[di]],c(1,2,3,4),mean)/scor[[di]][,4,1,1,1]
+    if(metric == "se") scsd <- apply(scor[[di]]/scor[[di]][,4,1,1,1],c(1,2,3,4),function(x) sd(x) /sqrt(length(scor[[di]][1,1,1,1,])))
+    if(metric == "sd") scsd <- apply(scor[[di]]/scor[[di]][,4,1,1,1],c(1,2,3,4),function(x) sd(x))
+    
+    for(i in 1:length(scor[[di]][1,6,,1,1])) error_polygon(ep = sc1[,6,i,1]+nmet*scsd[,6,i,1], en = sc1[,6,i,1]-nmet*scsd[,6,i,1],
+                                                           tstart = 1-endext,tend=endext+length(sc1[,6,i,1]),
+                                                           tmid=1:length(sc1[,6,i,1]),  color = colors3[di])
+    for(i in 1:length(scor[[di]][1,6,,1,1])) points(sc1[,6,i,1], type = "o", col = colors2[di], lwd = 3, lty = i)
+  }
+  
+  
+  # legend
+  par(mar=c(5,0.1,4,2)) #No margin on the left side
+  plot(c(0,0),type="n", axes=F, xlab="", ylab="") # empty plot for the legend
+  
+  if(length(scor) > 1) legend("topleft", legend = legend_key, col = colors2, lwd = 3, cex = 1, title = legend_label) 
+
+  plot(c(0,0),type="n", axes=F, xlab="", ylab="", xlim = c(0,1), ylim = c(0,1)) # empty plot for the legend
+  
+  if(dim(scor[[1]])[3] > 1) legend("center", legend = names(scor[[1]][1,1,,1,1]), col = "black", lwd = 2, cex = 1, 
+                                   lty = 1:length(scor[[1]][1,1,,1,1]), title = "groups") 
+  #
+}
+
+
+plotrepeatworld_gridoccupancy <- function(world, endext = 0.1, legend_key = 1000, yfactor = 3, legend_label = NA) {
+  layout(matrix(c(1,2,3,4),nrow=2), width=c(4,1,4,1))
+  par(mar=c(5,4,2.5,0)) #No margin on the right side
+  
+  colors2 <- rainbow(length(world), alpha = 0.8)
+  colors3 <- rainbow(length(world), alpha = 0.2)
+  
+  ### occupied grid cells
+  
+  plot(0,0,xlim = c(1,max(unlist(lapply(1:length(world),function(x) max(dim(world[[x]][[1]])[3]))))), 
+       ylim = c(0,max(unlist(lapply(1:length(world),function(x) max(world[[x]][[4]]))))),
+       xlab = "genus", type = "n",
+  ylab = "occupied grid cells", main = "occupied grid cells per genus")
+ 
+
+    for(di in 1:length(world)) points(sort(w[[di]][[4]], decreasing = T), type = "p", col = colors2[di], pch = 1, cex = 1, lty = 1)
+  
+  ### histogram
+  plot(0,0,xlim = c(0,log(max(unlist(lapply(1:length(world),function(x) max(world[[x]][[4]])))))), 
+       ylim = c(0,max(unlist(lapply(1:length(world),function(x) max(dim(world[[x]][[1]])[3]))))/yfactor),
+       ylab = "number of genera (frequency)", type = "n",
+       xlab = "log(occupied grid cells)", main = "histogram of grid cell occupation")
+  
+  mybreaks <- seq(0,log(max(unlist(lapply(1:length(world),function(x) max(world[[x]][[4]]))))),length.out = 20)
+  for(di in 1:length(world)) hist(log(sort(w[[di]][[4]], decreasing = T)), col = colors3[di], add = T,
+                                  breaks = mybreaks, border = colors2[di])#, type = "l", col = colors2[di], lwd = 3, lty = 1)
+  
+  
+  # legend
+  par(mar=c(5,0.1,4,2)) #No margin on the left side
+  plot(c(0,0),type="n", axes=F, xlab="", ylab="") # empty plot for the legend
+  
+  if(length(legend_key) > 1) legend("topleft", legend = legend_key, col = colors2, lwd = 3, cex = 1, title = legend_label) 
+  
+  }
+  

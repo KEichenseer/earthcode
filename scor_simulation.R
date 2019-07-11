@@ -338,6 +338,8 @@ repeatsampleSCOR <- function(
   samplingrep = 1, n_plus_one = T
   
 ) {
+  
+  timebinnames <- mtimebins
   scor_out <- array(NA,dim = c(length(timebinnames), 5, length(groupnames), samplingrep, repetitions), 
                     dimnames = list(timebinnames,c("SCOR","SCORvar","SCORse","Ncells","Ngenera"),groupnames, 1:samplingrep,
                                     1:repetitions))  
@@ -363,7 +365,7 @@ error_polygon <- function(ep,en,tstart,tend,tmid,color) {
 
 plotrepeatSCOR <- function(scor, endext = 0.2, metric = "se", nmet = 2) {
   layout(matrix(c(1,2,3,4,5,6),nrow=3), width=c(4,1,4,1,4,1))
-  par(mar=c(5,4,2,0)) #No margin on the right side
+  par(mar=c(5,4,2.5,0)) #No margin on the right side
   
   ### SCOR
   
@@ -375,7 +377,7 @@ plotrepeatSCOR <- function(scor, endext = 0.2, metric = "se", nmet = 2) {
   colors3 <- rainbow(length(sc1[1,1,,1]), alpha = 0.2)
   
   plot(0,0,xlim = c(1,length(sc1[,1,1,1])), ylim = c(0,max(c(scor[,1,,,]))), xlab = "timebin index", 
-       ylab = "SCOR")
+       ylab = "SCOR", main = "SCOR")
   for(i in 1:length(scor[1,1,,1,1])) error_polygon(ep = sc1[,1,i,1]+nmet*scsd[,1,i,1], en = sc1[,1,i,1]-nmet*scsd[,1,i,1],
                                                    tstart = 1-endext,tend=endext+length(sc1[,1,i,1]),
                                                    tmid=1:length(sc1[,1,i,1]),  color = colors3[i])
@@ -384,7 +386,7 @@ plotrepeatSCOR <- function(scor, endext = 0.2, metric = "se", nmet = 2) {
   ###
   # Genera
   plot(0,0,xlim = c(1,length(sc1[,5,1,1])), ylim = c(0,max(c(scor[,5,,,]))), xlab = "timebin index", 
-       ylab = "genera")
+       ylab = "genera", main = "genera")
   
   for(i in 1:length(scor[1,1,,1,1])) error_polygon(ep = sc1[,5,i,1]+nmet*scsd[,5,i,1], en = sc1[,5,i,1]-nmet*scsd[,5,i,1],
                                                    tstart = 1-endext,tend=endext+length(sc1[,5,i,1]),
@@ -394,7 +396,7 @@ plotrepeatSCOR <- function(scor, endext = 0.2, metric = "se", nmet = 2) {
   ###
   # Cells
   plot(0,0,xlim = c(1,length(sc1[,4,1,1])), ylim = c(0,max(c(scor[,4,,,]))), xlab = "timebin index", 
-       ylab = "cells")
+       ylab = "cells", main = "cells")
   
   error_polygon(ep = sc1[,4,1,1]+nmet*scsd[,4,1,1], en = sc1[,4,1,1]-nmet*scsd[,4,1,1],
                 tstart = 1-endext,tend=endext+length(sc1[,4,1,1]),

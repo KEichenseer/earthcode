@@ -133,8 +133,8 @@ sampleworld <- function(world,
                         # in all 10 time bins to between 25 and 35.
                         y_range = NULL) {
   
-  if(is.null(x_range)) x_range <- rep(list(c(1,dim(world[[1]])[1])), 10)
-  if(is.null(y_range)) y_range <- rep(list(c(1,dim(world[[1]])[2])), 10)
+  if(is.null(x_range)) x_range <- rep(list(c(1,dim(world[[1]])[1])), mtimebins)
+  if(is.null(y_range)) y_range <- rep(list(c(1,dim(world[[1]])[2])), mtimebins)
   
   
   # names of the time bins (just use numbers)

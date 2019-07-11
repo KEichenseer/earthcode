@@ -34,7 +34,7 @@ createworld <- function(xl = 50,
   # array to save the world
   td <- array(0,dim = c(xl,yl,tn))
   
-   
+  
   # fill in the distribution into the world - run across the grid filling genera to cells, with occurrence limit (capacity)
   if(usediv == T){ for(xn in 1:xl) {
     for(yn in 1:yl){
@@ -289,24 +289,27 @@ getSCOR <- function(dataframe, timebinnames, groupnames = "none", useallcells = 
 
 plotSCOR <- function(scor) {
   layout(matrix(c(1,2,3,4,5,6),nrow=3), width=c(4,1,4,1,4,1))
-  par(mar=c(5,4,4,0)) #No margin on the right side
+  par(mar=c(5,4,2.5,0)) #No margin on the right side
   
   ### SCOR
-  plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,1,,]))), xlab = "timebin index", ylab = "SCOR", main = "no subsampling")
+  plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,1,,]))), xlab = "timebin index", ylab = "SCOR",
+       main = "SCOR")
   colors2 <- rainbow(ncol(scor[,,1,1]), alpha = 0.8)
   # abline(v = mean(as.numeric(alltimebins)), lty = 2)
   for(i in 1:dim(scor)[3]) points(scor[,1,i,1], type = "o", col = colors2[i], lwd = 3)
   
   ###
   # Genera
-  plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,5,,]))), xlab = "timebin index", ylab = "genera")
+  plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,5,,]))), xlab = "timebin index", ylab = "genera",
+       main = "genera")
   colors2 <- rainbow(ncol(scor[,,1,1]), alpha = 0.8)
   # abline(v = mean(as.numeric(alltimebins)), lty = 2)
   for(i in 1:dim(scor)[3]) points(scor[,5,i,1], type = "o", col = colors2[i], lwd = 3)
   
   ###
   # Cells
-  plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,4,,]))), xlab = "timebin index", ylab = "cells")
+  plot(0,0,xlim = c(1,length(scor[,1,1,1])), ylim = c(0,max(c(scor[,4,,]))), xlab = "timebin index", ylab = "cells",
+       main = "cells")
   points(scor[,4,1,1], type = "o", col = "black", lwd = 3)
   
   

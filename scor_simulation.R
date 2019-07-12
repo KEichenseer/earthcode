@@ -128,6 +128,7 @@ sampleworld <- function(world,
                         ncells = rep(100,10),   # number of cells sampled for each time bin. Needs to be
                         # a vector with length mtimebins
                         ntaxacell = NULL, # subsample down to ntaxacell taxa per cell
+                        noccurrencecell = NULL, # subsample down to noccurrencecell occurrences per cell 
                         x_range = NULL,  # optional: restrict the longitude sampled
                         # needs to be a list of vectors of length mtimbins.
                         # Each list element needs to specify the start and the end of the range.
@@ -159,9 +160,20 @@ sampleworld <- function(world,
       
       # taxa subsampling
       if(!(is.null(ntaxacell))) {
-        subcelltaxindex <-  sample(1:length(celltax),size = ntaxacell, prob = celltaxn)
+        subcelltaxindex <-  sample(1:length(celltax),size = ntaxacell[m], prob = celltaxn)
         celltax <- celltax[subcelltaxindex]
         celltaxn <- celltaxn[subcelltaxindex]
+      }
+      
+      # occurrence subsampling
+      if(!(is.null(noccurrencecell))) {
+        fullcelltax <- unlist(sapply(1:length(celltax),function(x) rep(celltax[x], celltaxn[x])))
+        
+        if(length(fullcelltax) > noccurrencecell[m]) sampledcelltax <- sample(fullcelltax,size = noccurrencecell[m],replace =F)
+        if(length(fullcelltax) <= noccurrencecell[m]) sampledcelltax <- fullcelltax
+        celltax <- unique(sort(sampledcelltax))
+        celltaxn <- table(sampledcelltax)
+
       }
       
       groupscell <- world[[2]][celltax]
@@ -273,7 +285,7 @@ getSCOR <- function(dataframe, timebinnames, groupnames = "none", useallcells = 
       ### In case you want uniform taxon number per time bin: downsample to minimum taxon number (ntaxon):
       if (downsample == "taxa")  tempsub <- subset(tempsub,taxon %in% base::sample(unique(tempsub$taxon), size = subtaxa, replace = F))
       #
-      ### In case you want uniform taxon number per time bin: downsample to minimum taxon number (ntaxon):
+      ### In case you want uniform occurrence number per time bin: downsample to minimum taxon number (suboccs):
       if (downsample == "occurrences")  tempsub <- tempsub[sample(1:nrow(tempsub),size = suboccs, replace = F),]
       #
       #
@@ -343,16 +355,17 @@ repeatsampleSCOR <- function(
   # for the resampling
   mtimebins = 10,
   ncells = rep(100,10),
-  ntaxacell = FALSE,
+  ntaxacell = NULL,
+  noccurrencecell = NULL,
   x_range = NULL,
   y_range = NULL,
   # for SCOR
   groupnames = 1, 
   useallcells = T, 
   downsample = FALSE, 
-  subcells = FALSE,
-  subtaxa = FALSE,
-  suboccs = FALSE,
+  subcells = NULL,
+  subtaxa = NULL,
+  suboccs = NULL,
   samplingrep = 1, n_plus_one = T
   
 ) {
@@ -362,7 +375,8 @@ repeatsampleSCOR <- function(
                     dimnames = list(timebinnames,c("SCOR","SCORvar","SCORse","Ncells","Ngenera", "MeanGenCells"),groupnames, 1:samplingrep,
                                     1:repetitions))  
   for (nrep in 1:repetitions){
-    sworld <- sampleworld(world = world, mtimebins = mtimebins, ncells = ncells, ntaxacell = ntaxacell, x_range = x_range, y_range = y_range)
+    sworld <- sampleworld(world = world, mtimebins = mtimebins, ncells = ncells, ntaxacell = ntaxacell,
+                          noccurrencecell = noccurrencecell,x_range = x_range, y_range = y_range)
     
     scor_out[,,,,nrep] <-  getSCOR(sworld, timebinnames = timebinnames, groupnames = groupnames, useallcells = useallcells, 
                                    downsample = downsample, subcells = subcells, 
@@ -384,7 +398,7 @@ error_polygon <- function(ep,en,tstart,tend,tmid,color) {
 }
 
 plotrepeatSCOR <- function(scor, endext = 0.1, metric = "se", nmet = 2) {
-  layout(matrix(c(1,2,3,4,5,6),nrow=3), width=c(4,1,4,1,4,1))
+  layout(matrix(c(1,2,3,4,5,6),nrow=3), width=c(3,1,3,1,3,1))
   par(mar=c(5,4,2.5,0)) #No margin on the right side
   
   ### SCOR
@@ -436,7 +450,7 @@ plotrepeatSCOR <- function(scor, endext = 0.1, metric = "se", nmet = 2) {
 
 
 plotrepeatworldSCOR <- function(scor, endext = 0.1, metric = "se", nmet = 2, legend_key = NA, legend_label = NA) {
-  layout(matrix(c(1,2,3,4,5,6,7,8),nrow=4), width=c(4,1,4,1,4,1,4,1))
+  layout(matrix(c(1,2,3,4,5,6,7,8),nrow=4), width=c(3,1,3,1,3,1,3,1))
   par(mar=c(5,4,2.5,0)) #No margin on the right side
   
   colors2 <- rainbow(length(scor), alpha = 0.8)
@@ -514,7 +528,7 @@ plotrepeatworldSCOR <- function(scor, endext = 0.1, metric = "se", nmet = 2, leg
   
   
   # legend
-  par(mar=c(5,0.1,4,2)) #No margin on the left side
+  par(mar=c(5,1,1,2)) #No margin on the left side
   plot(c(0,0),type="n", axes=F, xlab="", ylab="") # empty plot for the legend
   
   if(length(scor) > 1) legend("topleft", legend = legend_key, col = colors2, lwd = 3, cex = 1, title = legend_label) 

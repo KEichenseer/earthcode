@@ -140,7 +140,6 @@ fairextend <- function(m,p) {
   output[2] <- m[2] + (m[2]-m[1])*p
   output
 }
-fairextend(c(2,10),0.1)
 
 # a function to de-mean and stitch together two time series between t and (t-1)
 stitch <- function(a,t) {
@@ -163,16 +162,16 @@ ldt <- function(x,t) {
 
 
 # functoin to draw polygons of dataframes, proportions from 0 to 1
-polygon( c(tstart, tmid, tend, tend, rev(tmid), tstart),
-         c((ep)[1],ep, (ep)[length(ep)], (en)[length(en)], rev(en), (en)[1]),
-         border = NA, col = color)
-z <- cbind(c(0.1,0.2,0.1,0.2,0.5),c(0.1,0.1,0.1,0.0,0.2),c(0.5,0,0.2,0.1,0.2),c(0.3,0.7,0.6,0.7,0.1))
-z
-col <- c("blue","red","yellow","green")
+#polygon( c(tstart, tmid, tend, tend, rev(tmid), tstart),
+#         c((ep)[1],ep, (ep)[length(ep)], (en)[length(en)], rev(en), (en)[1]),
+#         border = NA, col = color)
+#z <- cbind(c(0.1,0.2,0.1,0.2,0.5),c(0.1,0.1,0.1,0.0,0.2),c(0.5,0,0.2,0.1,0.2),c(0.3,0.7,0.6,0.7,0.1))
+
+#col <- c("blue","red","yellow","green")
 #apply(z[,1:i],1,sum)
-t <- 1:5
-tstart <- 0
-tend <- 6
+#t <- 1:5
+#tstart <- 0
+#tend <- 6
 polyplot01 <- function(z,t,tstart,tend,col) {
   nc <- ncol(z)
   nr <- nrow(z)
@@ -259,10 +258,10 @@ error_polygon2 <- function(ep,en,tstart,tend,tmid,color) {
   }
 }
 
-vo <- c(2,4,8,16,32)
-to <- c(1,2,3,4,6)
-tt <- c(0,1,4,4,4.5,8)
-l <- 5
+#vo <- c(2,4,8,16,32)
+#to <- c(1,2,3,4,6)
+#tt <- c(0,1,4,4,4.5,8)
+#l <- 5
 #### Intermediate values at certain points
 inter <- function(vo,to,tt) {
   vn <- rep(NA,length(tt))
@@ -298,11 +297,11 @@ linp_t <- function(t,a,b,tmin,tmax) {
   
   out
 }
-a <- 2.5
-b <- 22.5
-tmin <- 0
-tmax = 100
-t <- bicarb$time[3:46]
+#a <- 2.5
+#b <- 22.5
+#tmin <- 0
+#tmax = 100
+#t <- bicarb$time[3:46]
 #plot(t,linp_t(t,a,b,0,180),type = "o")
 
 #summary(lm(linp_t(t,a,b,0,180)~t))
@@ -368,10 +367,10 @@ myloess <- function(var,t,span) {
   predict(loess(y~x, dat, span = span),method = "loess()")
 }
 
-x <- c(0.1,0.4,-1.224)
-y <- c(22,80)
-l <- 3
-n <- 1
+#x <- c(0.1,0.4,-1.224)
+#y <- c(22,80)
+#l <- 3
+#n <- 1
 find_labs <- function(x,n,l) {
   labs <- round(seq(min(x), max(x), (max(x)-min(x))/(l-1)),n)
   labs[which(labs > (min(x)-(max(x) - min(x))*0.02) & labs < (max(x)+(max(x) - min(x))*0.02))]

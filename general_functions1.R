@@ -375,7 +375,6 @@ find_labs <- function(x,n,l) {
   labs <- round(seq(min(x), max(x), (max(x)-min(x))/(l-1)),n)
   labs[which(labs > (min(x)-(max(x) - min(x))*0.02) & labs < (max(x)+(max(x) - min(x))*0.02))]
 }
-find_labs(x,1,7)
 
 ### Custom additive multiple regression
 

@@ -1,0 +1,55 @@
+---
+title: "Change point Regression using JAGS"
+author: "Kilian Eichenseer"
+date: "10 5 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Assume you want to investigate the relationships between two variables, let's say x and y, that you have collected over a certain period of time t. You have reason to believe that something happened at some point t~1~ that changed the relationship, but you are not sure when.
+
+Let's generate some data and plot it. Here we put the change at time = 30, but our model will not know that:
+
+```{r, fig.width= 7, fig.height= 3.5}
+set.seed(1)
+N <- 50
+x <- rnorm(N,0,1)
+y <- rnorm(N,0,1) + 0.5 * x
+
+par(mfrow=c(1,2), mar = c(4,4,1,1), las = 1, mgp = c(2.25,0.75,0))
+plot(x,y, bg = rgb(0,0,0,0.5), pch = 21)
+
+plot(x, type = "o", pch = 19, ylim = c(-2.25,3.25), cex = 0.6, xlab = "time")
+points(y, type = "o", col = "red", pch = 19, cex = 0.6)
+legend("topright", legend = c("x","y"), col = c("black","red"), pch = 19, lwd = 1, pt.cex = 0.6, bty = "n")
+
+```
+
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+phase_1 <- 1:30
+phase_2 <- 31:50
+y[phase_2] <- rnorm(50,0,1) + 1 * x[phase_2]
+
+phase_col <- rep(rgb(0,0.5,1,0.75), 50)
+phase_col[phase_2] <- rgb(1,0,0,0.75)

@@ -1,5 +1,5 @@
 ---
-title: "Change point Regression using JAGS"
+title: "Change point regression using JAGS"
 author: "Kilian Eichenseer"
 date: "10 5 2021"
 output: html_document
@@ -11,45 +11,165 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-Assume you want to investigate the relationships between two variables, let's say x and y, that you have collected over a certain period of time t. You have reason to believe that something happened at some point t~1~ that changed the relationship, but you are not sure when.
+Assume we want to investigate the relationships between two variables, let's say x and y, that we have collected over a certain period of time t. We have reason to believe that something happened at some point t~1~ that changed the relationship, but we are not sure when.
 
-Let's generate some data and plot it. Here we put the change at time = 30, but our model will not know that:
+Let's generate x and y and plot them. The intercept and slope change at t = 35, but our model will not know that. 
 
-```{r, fig.width= 7, fig.height= 3.5}
-set.seed(1)
-N <- 50
-x <- rnorm(N,0,1)
-y <- rnorm(N,0,1) + 0.5 * x
+```{r, fig.width= 7, fig.height= 3.5, warning=FALSE}
+set.seed(10)
+n <- 60
+x <- rnorm(n,0,1)
+y <- rnorm(n,0,0.5) + 0.5 * x
+phase_1 <- 1:34.
+phase_2 <- 35:n
+y[phase_2] <- rnorm(length(phase_2),0,1) + 1 * x[phase_2] + 0.75
+
+phase_col <- rep(rgb(0,0.3,1,0.75), n)
+phase_col[phase_2] <- rgb(0.9,0.4,0,0.75)
 
 par(mfrow=c(1,2), mar = c(4,4,1,1), las = 1, mgp = c(2.25,0.75,0))
-plot(x,y, bg = rgb(0,0,0,0.5), pch = 21)
 
-plot(x, type = "o", pch = 19, ylim = c(-2.25,3.25), cex = 0.6, xlab = "time")
+plot(x,y, type = "n")
+abline(h=0, v=0, lty = 3)
+points(c(min(x[phase_1]),max(x[phase_1])), c(min(x[phase_1]), max(x[phase_1])) *  coefficients(lm(y[phase_1] ~ x[phase_1]))[2] + coefficients(lm(y[phase_1] ~ x[phase_1]))[1], type = "l", col = rgb(0,0.3,1) , lwd = 1.5)
+points(c(min(x[phase_2]),max(x[phase_2])), c(min(x[phase_2]), max(x[phase_2])) *  coefficients(lm(y[phase_2] ~ x[phase_2]))[2] + coefficients(lm(y[phase_2] ~ x[phase_2]))[1], type = "l", col = rgb(0.9,0.4,0), lwd = 1.5)
+points(x,y, bg = phase_col, pch = 21)
+legend("topleft", legend = c(expression("t"[1]~"-t"[30]), expression("t"[31]~"-t"[50])), pt.bg  = c(rgb(0,0.3,1), rgb(0.9,0.4,0)), pch = 21,  pt.cex = 1, bty = "n")
+
+
+plot(x, type = "o", pch = 19, ylim = c(min(y),max(y)), cex = 0.6, xlab = "time")
 points(y, type = "o", col = "red", pch = 19, cex = 0.6)
-legend("topright", legend = c("x","y"), col = c("black","red"), pch = 19, lwd = 1, pt.cex = 0.6, bty = "n")
+legend("topleft", legend = c("x","y"), col = c("black","red"), pch = 19, lwd = 1, pt.cex = 0.6, bty = "n")
+
 
 ```
 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Now we build a model that can recover the change point. For this, we use the [JAGS](#Plummer2012) programming environment, accessed through the R2jags package [Su and Yajima 2020](#SuandYajima). 
 
-```{r cars}
-summary(cars)
+Consider an ordinary least squares regression of y against x:
+
+$y_i \sim N(\mu_i, \delta^2),~~~i = 1,...n$  
+  
+$\mu_i = \alpha~+~\beta~x_i$  
+
+Here we have a single intercept ($\alpha$), slope ($\beta$), and residual variance ($\delta^2$) for the regression of y against x.  
+
+If we want to allow the intercept of the regression to change, we model an additional intercept in the second part of the time series, ($\alpha_2$). The intercept before the change is simply ($\alpha_1$), and the intercept after the change is ($\alpha_1$) + ($\alpha_2$) course, we can do the same for the slope and the residual variance. This gives us the model:
+
+$y_i \sim N(\mu_i, \delta_j^2),~~~i = 1,...n$  
+
+
+require(ggmcmc) 
+require(R2jags) 
+require(ggplot2)
+```{r }
+
+##################################################################
+#
+# Detect one change point
+#
+#
+# Allow a difference variance before and after the change point
+#
+model_CPR <- function(){
+  for(i in 1:n){ # Points i in 1:n_change - 1 have a certain linear behaviour, 
+    # points i in (n_change):n have a potentially different behaviour
+    # The precision can also change before and after the change point
+    #
+    # Data model or likelihood part
+    #
+    y[i] ~ dnorm(mu[i], tau[i]) # Parametrized by the precision tau = 1 / sigma^2
+    mu[i] <- beta_0 + additional_beta_0 * step(i - n_change) + (beta_1 + (additional_beta_1 * step(i - n_change)))*x[i]
+    # step takes the value 1 if its argument is greater than or equal to 0, i.e. it test for argument >= 0
+    tau[i] <- exp(log_tau[i])
+    # An additional contribution to tau, the precision, is allowed after the change point
+    # This could be negative, corresponding to a reduction
+    #
+    log_tau[i] <- log_tau_before + log_tau_additional * step(i - n_change)
+  }
+  #
+  #
+  # Priors
+  #
+  beta_0 ~ dnorm(0.0, 1.0E-4) # Prior on beta_0 is normal with low precision
+  beta_1 ~ dnorm(0.0, 1.0E-4) # Prior on beta_1 is normal with low precision
+  #
+  additional_beta_0 ~ dnorm(0.0, 1.0E-4) # Prior on additional_beta_0 is normal with low precision
+  additional_beta_1 ~ dnorm(0.0, 1.0E-4) # Prior on additional_beta_1 is normal with low precision
+  #
+  # Vauge prior on log_taus
+  #
+  log_tau_before ~ dnorm(0.0, 1.0E-4)
+  log_tau_additional ~ dnorm(0.0, 1.0E-4)
+  #
+  tau_before <- exp(log_tau_before)
+  tau_after <- exp(log_tau_before + log_tau_additional)
+  #
+  K ~ dcat(p[])
+  
+  n_change <- possible_change_points[K]
+  #
+  # Definition of sigma
+  #
+  sigma_before <- 1.0 / sqrt(tau_before)
+  sigma_after <- 1.0 / sqrt(tau_after)
+  #
+  sigma_change <- sigma_after - sigma_before
+  #
+  # Slope and intercept after the change point
+  #
+  beta_0_after <- beta_0 + additional_beta_0
+  beta_1_after <- beta_1 + additional_beta_1
+}
+
 ```
 
-## Including Plots
+# ```{r }
+# 
+# # Perform Bayesian inference 
+# #
+# # Data
+# #
+# #
+# minimum_segment_length <- 5
+# possible_change_points <- (1:n)[(minimum_segment_length+1):(n+1-minimum_segment_length)]
+# #
+# M <- length(possible_change_points)
+# M
+# #
+# # For discrete uniform prior on the possible change points
+# #
+# p <- rep(1 / M, length = M) 
+# p
+# #
+# # Prepare the data for jags
+# #
+# data_CPR <- list("x", "y", "n", "possible_change_points", "p")
+# #
+# #
+# regression_CPR  <- jags(data = data_CPR, 
+#                                              parameters.to.save = c("beta_0", "beta_1", 
+#                                                                     "beta_0_after","beta_1_after",
+#                                                                     "additional_beta_0",
+#                                                                     "additional_beta_1",
+#                                                                     "n_change",
+#                                                                     "tau_before","tau_after",
+#                                                                     "sigma_before", "sigma_after",
+#                                                                     "sigma_change"), 
+#                                              n.iter = 2000, # Rather slow!
+#                                              n.chains = 5,
+#                                              model.file = model_CPR)
+# #
+# # ---------------------------------------------
+# #
+# regression_CPR
+# hist(regression_CPR$BUGSoutput$sims.list$n_change, col = rgb(0,0,0,0.3), breaks = seq(min(possible_change_points)-0.25,max(possible_change_points)+0.25,0.5))
+# abline(v = 35, col = "red", lty = 3)
+# ```
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+### References
+<a id="Plummer2012"> </a> Plummer, M. (2012). JAGS Version 3.3. 0 user manual. International Agency for Research on Cancer, Lyon, France.
+<a id="SuandYajima"> </a> Su, Y. S., & Yaima, M. (2020). R2jags: Using R to run" JAGS" version 0.6-1. https://CRAN.R-project.org/package=R2jags.
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-phase_1 <- 1:30
-phase_2 <- 31:50
-y[phase_2] <- rnorm(50,0,1) + 1 * x[phase_2]
-
-phase_col <- rep(rgb(0,0.5,1,0.75), 50)
-phase_col[phase_2] <- rgb(1,0,0,0.75)

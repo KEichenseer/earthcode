@@ -1,19 +1,17 @@
 ---
 title: "Change point regression using JAGS"
-author: "Kilian Eichenseer"
-date: "10 5 2021"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+*This implementation of change point regression was developed by [Julian Stander (University of Plymouth)](https://www.plymouth.ac.uk/staff/julian-stander) and first published in [Eichenseer et al. (2019)](https://www.nature.com/articles/s41561-019-0392-9).*
 
-## Introduction
 
 Assume we want to investigate the relationships between two variables, let's say x and y, that we have collected over a certain period of time t. We have reason to believe that something happened at some point t~1~ that changed the relationship, but we are not sure when.
 
-Let's generate x and y and plot them. The intercept and slope change at t = 35, but our model will not know that. 
+Let's generate x and y and plot them. We induce an increase in the intercept, slope and residual variance at t = 35:
 
 ```{r, fig.width= 7, fig.height= 3.5, warning=FALSE}
 set.seed(10)
@@ -34,7 +32,7 @@ abline(h=0, v=0, lty = 3)
 points(c(min(x[phase_1]),max(x[phase_1])), c(min(x[phase_1]), max(x[phase_1])) *  coefficients(lm(y[phase_1] ~ x[phase_1]))[2] + coefficients(lm(y[phase_1] ~ x[phase_1]))[1], type = "l", col = rgb(0,0.3,1) , lwd = 1.5)
 points(c(min(x[phase_2]),max(x[phase_2])), c(min(x[phase_2]), max(x[phase_2])) *  coefficients(lm(y[phase_2] ~ x[phase_2]))[2] + coefficients(lm(y[phase_2] ~ x[phase_2]))[1], type = "l", col = rgb(0.9,0.4,0), lwd = 1.5)
 points(x,y, bg = phase_col, pch = 21)
-legend("topleft", legend = c(expression("t"[1]~"-t"[30]), expression("t"[31]~"-t"[50])), pt.bg  = c(rgb(0,0.3,1), rgb(0.9,0.4,0)), pch = 21,  pt.cex = 1, bty = "n")
+legend("topleft", legend = c(expression("t"[1]~"- t"[34]), expression("t"[35]~"- t"[60])), pt.bg  = c(rgb(0,0.3,1), rgb(0.9,0.4,0)), pch = 21,  pt.cex = 1, bty = "n")
 
 
 plot(x, type = "o", pch = 19, ylim = c(min(y),max(y)), cex = 0.6, xlab = "time")
@@ -45,21 +43,25 @@ legend("topleft", legend = c("x","y"), col = c("black","red"), pch = 19, lwd = 1
 ```
 
 
-Now we build a model that can recover the change point. For this, we use the [JAGS](#Plummer2012) programming environment, accessed through the R2jags package [Su and Yajima 2020](#SuandYajima). 
+Now we build a model that can recover the change point. 
 
 Consider an ordinary least squares regression of y against x:
 
-$y_i \sim N(\mu_i, \delta^2),~~~i = 1,...n$  
+$y_i \sim N(\mu_i, \delta^2), ~~~~~ i = 1,...n$  
   
-$\mu_i = \alpha~+~\beta~x_i$  
+$\mu_i = \alpha~+~\beta~x_i, ~~~~~ i = 1,...n$  
 
-Here we have a single intercept ($\alpha$), slope ($\beta$), and residual variance ($\delta^2$) for the regression of y against x.  
+Here we have a single intercept ($\alpha$), slope ($\beta$), and residual variance ($\delta^2$) for the regression of y against x. $n$ denotes the total  number of obervations, 60.
 
-If we want to allow the intercept of the regression to change, we model an additional intercept in the second part of the time series, ($\alpha_2$). The intercept before the change is simply ($\alpha_1$), and the intercept after the change is ($\alpha_1$) + ($\alpha_2$) course, we can do the same for the slope and the residual variance. This gives us the model:
+If we want to allow the intercept of the regression to change, we model an additional intercept in the second part of the time series, $\alpha_2$. The intercept before the change is simply $\alpha_1$, and the intercept after the change is $\alpha_1$ + $\alpha_2$. Of course, we can do the same for the slope and the residual variance.  We thus end up with the following model, where $n_1$ denotes the change point:
 
-$y_i \sim N(\mu_i, \delta_j^2),~~~i = 1,...n$  
+$y_i \sim N(\mu_i, \delta_1^2), ~~~~~ i = 1,...n_1-1$  
+$\mu_i = \alpha_1~+~\beta_1~x_i, ~~~~~ i = 1,...n_1-1$ \ \ \ \ The regression before the change point is equivalent to our simple example above.  
+  
+$y_i \sim N(\mu_i, \delta_1^2+\delta_2^2), ~~~~~ i = n_1,...n$  
+$\mu_i = \alpha_1~+~\alpha_2~+~(\beta_1~+~\beta_2)~x_i, ~~~~~ i = n_1,...n$ \ \ \ \ Note the additional parameters after the change point.  
 
-
+To estimate this model, we use the [JAGS](#Plummer2012) programming environment, accessed through the R2jags package [Su and Yajima 2020](#SuandYajima). 
 require(ggmcmc) 
 require(R2jags) 
 require(ggplot2)
@@ -170,6 +172,8 @@ model_CPR <- function(){
 
 
 ### References
-<a id="Plummer2012"> </a> Plummer, M. (2012). JAGS Version 3.3. 0 user manual. International Agency for Research on Cancer, Lyon, France.
+<a id="Eichenseer2019"> </a> Eichenseer, K., Balthasar, U., Smart, C. W., Stander, J., Haaga, K. A., & Kiessling, W. (2019). Jurassic shift from abiotic to biotic control on marine ecological success. Nature Geoscience, 12(8), 638-642.  
+  
+<a id="Plummer2012"> </a> Plummer, M. (2012). JAGS Version 3.3. 0 user manual. International Agency for Research on Cancer, Lyon, France.  
+  
 <a id="SuandYajima"> </a> Su, Y. S., & Yaima, M. (2020). R2jags: Using R to run" JAGS" version 0.6-1. https://CRAN.R-project.org/package=R2jags.
-

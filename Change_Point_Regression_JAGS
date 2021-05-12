@@ -1,6 +1,8 @@
 ---
 title: "Change point regression using JAGS"
 output: html_document
+header-includes:
+- \usepackage{align}
 ---
 
 ```{r setup, include=FALSE}
@@ -47,21 +49,29 @@ Now we build a model that can recover the change point.
 
 Consider an ordinary least squares regression of y against x:
 
-$y_i \sim N(\mu_i, \delta^2), ~~~~~ i = 1,...n$  
+$y_i \sim N(\mu_i, \delta^2),$
   
-$\mu_i = \alpha~+~\beta~x_i, ~~~~~ i = 1,...n$  
+$\mu_i = \alpha~+~\beta~x_i, ~~~~~ i = 1,...n$
 
 Here we have a single intercept ($\alpha$), slope ($\beta$), and residual variance ($\delta^2$) for the regression of y against x. $n$ denotes the total  number of obervations, 60.
 
 If we want to allow the intercept of the regression to change, we model an additional intercept in the second part of the time series, $\alpha_2$. The intercept before the change is simply $\alpha_1$, and the intercept after the change is $\alpha_1$ + $\alpha_2$. Of course, we can do the same for the slope and the residual variance.  We thus end up with the following model, where $n_1$ denotes the change point:
 
-$y_i \sim N(\mu_i, \delta_1^2), ~~~~~ i = 1,...n_1-1$  
-$\mu_i = \alpha_1~+~\beta_1~x_i, ~~~~~ i = 1,...n_1-1$ \ \ \ \ The regression before the change point is equivalent to our simple example above.  
-  
-$y_i \sim N(\mu_i, \delta_1^2+\delta_2^2), ~~~~~ i = n_1,...n$  
-$\mu_i = \alpha_1~+~\alpha_2~+~(\beta_1~+~\beta_2)~x_i, ~~~~~ i = n_1,...n$ \ \ \ \ Note the additional parameters after the change point.  
+$\begin{aligned} \begin{equation} \begin{array}{l} 
+y_i \sim N(\mu_i, \delta_1^2), \\
+\mu_i = \alpha_1~+~\beta_1~x_i, ~~~~~ i = 1,...n_1-1  \end{array} 
+\end{equation} \end{aligned}$ \ \ \ \ [Regression before the change point]{style="float:center"}
+<br>
+<br>
+$\begin{aligned} \begin{equation} \begin{array}{l} 
+y_i \sim N(\mu_i, \delta_1^2+\delta_2^2), \\
+\mu_i = \alpha_1~+~\alpha_2~+~(\beta_1~+~\beta_2)~x_i, ~~~~~ i = n_1,...n  \end{array} 
+\end{equation} \end{aligned}$ \ \ \ \ [Regression after the change point]{style="float:center"}
 
-To estimate this model, we use the [JAGS](#Plummer2012) programming environment, accessed through the R2jags package [Su and Yajima 2020](#SuandYajima). 
+The regression before the change point is equivalent to our simple example above.  
+
+To estimate this model, we use the [JAGS](#Plummer2012) programming environment, accessed through the R2jags package [Su and Yajima 2020](#SuandYajima). Understanding a model written in JAGS is not easy at first. If you are keen on learning Bayesian modeling from scratch I can highly recommend Richard McElreath's book [Statistical Rethinking](https://xcelab.net/rm/statistical-rethinking/).
+
 require(ggmcmc) 
 require(R2jags) 
 require(ggplot2)

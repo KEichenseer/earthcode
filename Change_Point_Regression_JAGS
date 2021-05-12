@@ -73,9 +73,8 @@ The regression before the change point is equivalent to our simple example above
 To estimate this model, we use the [JAGS](#Plummer2012) programming environment, accessed through the R2jags package [Su and Yajima 2020](#SuandYajima). Understanding a model written in JAGS is not easy at first. If you are keen on learning Bayesian modeling from scratch I can highly recommend Richard McElreath's book [Statistical Rethinking](https://xcelab.net/rm/statistical-rethinking/).
 
 require(ggmcmc) 
-require(R2jags) 
 require(ggplot2)
-```{r }
+```{r, echo =FALSE, include = FALSE}
 
 ##################################################################
 #
@@ -137,48 +136,49 @@ model_CPR <- function(){
 
 ```
 
-# ```{r }
-# 
-# # Perform Bayesian inference 
-# #
-# # Data
-# #
-# #
-# minimum_segment_length <- 5
-# possible_change_points <- (1:n)[(minimum_segment_length+1):(n+1-minimum_segment_length)]
-# #
-# M <- length(possible_change_points)
-# M
-# #
-# # For discrete uniform prior on the possible change points
-# #
-# p <- rep(1 / M, length = M) 
-# p
-# #
-# # Prepare the data for jags
-# #
-# data_CPR <- list("x", "y", "n", "possible_change_points", "p")
-# #
-# #
-# regression_CPR  <- jags(data = data_CPR, 
-#                                              parameters.to.save = c("beta_0", "beta_1", 
-#                                                                     "beta_0_after","beta_1_after",
-#                                                                     "additional_beta_0",
-#                                                                     "additional_beta_1",
-#                                                                     "n_change",
-#                                                                     "tau_before","tau_after",
-#                                                                     "sigma_before", "sigma_after",
-#                                                                     "sigma_change"), 
-#                                              n.iter = 2000, # Rather slow!
-#                                              n.chains = 5,
-#                                              model.file = model_CPR)
-# #
-# # ---------------------------------------------
-# #
-# regression_CPR
-# hist(regression_CPR$BUGSoutput$sims.list$n_change, col = rgb(0,0,0,0.3), breaks = seq(min(possible_change_points)-0.25,max(possible_change_points)+0.25,0.5))
-# abline(v = 35, col = "red", lty = 3)
-# ```
+```{r, echo = FALSE}
+ require(R2jags) 
+
+ # Perform Bayesian inference 
+ #
+ # Data
+ #
+ #
+ minimum_segment_length <- 5
+ possible_change_points <- (1:n)[(minimum_segment_length+1):(n+1-minimum_segment_length)]
+ #
+ M <- length(possible_change_points)
+ M
+ #
+ # For discrete uniform prior on the possible change points
+ #
+ p <- rep(1 / M, length = M) 
+ p
+ #
+ # Prepare the data for jags
+ #
+ data_CPR <- list("x", "y", "n", "possible_change_points", "p")
+ #
+ #
+ regression_CPR  <- jags(data = data_CPR, 
+                                              parameters.to.save = c("beta_0", "beta_1", 
+                                                                     "beta_0_after","beta_1_after",
+                                                                     "additional_beta_0",
+                                                                     "additional_beta_1",
+                                                                     "n_change",
+                                                                     "tau_before","tau_after",
+                                                                     "sigma_before", "sigma_after",
+                                                                     "sigma_change"), 
+                                              n.iter = 500, # Rather slow!
+                                              n.chains = 2,
+                                              model.file = model_CPR)
+ #
+ # ---------------------------------------------
+ #
+ regression_CPR
+ hist(regression_CPR$BUGSoutput$sims.list$n_change, col = rgb(0,0,0,0.3), breaks = seq(min(possible_change_points)-0.25,max(possible_change_points)+0.25,0.5))
+ abline(v = 35, col = "red", lty = 3)
+```
 
 
 ### References
